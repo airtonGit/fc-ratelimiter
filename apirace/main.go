@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -41,9 +43,9 @@ func raceStart() {
 	<-doneC
 }
 
-func getCep(ctx context.Context, doneC chan signal, cepSource string, client *http.Client, cancelFunc context.CancelFunc, url string) {
+func getCep(ctx context.Context, doneC chan signal, cepSource string, client *http.Client, cancelFunc context.CancelFunc, reqURL string) {
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
 	if err != nil {
 		fmt.Printf("new request: %s\n", err)
 		return
@@ -51,6 +53,13 @@ func getCep(ctx context.Context, doneC chan signal, cepSource string, client *ht
 
 	resp, err := client.Do(req)
 	if err != nil {
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			if urlErr.Timeout() {
+				fmt.Println(fmt.Sprintf("%s request timeout", cepSource))
+				return
+			}
+		}
 		fmt.Printf("request doing: %s\n", err)
 		return
 	}
