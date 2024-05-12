@@ -31,14 +31,13 @@ func raceStart() {
 
 	doneC := make(chan signal)
 
-	go func() {
-		getCep(ctxApi, doneC, "ApiCEP", client, cancelVia, fmt.Sprintf(urlApiCEP, "88955000"))
+	//go func() {
+	go getCep(ctxApi, doneC, "ApiCEP", client, cancelVia, fmt.Sprintf(urlApiCEP, "88955000"))
+	//}()
 
-	}()
-
-	go func() {
-		getCep(ctxVia, doneC, "ViaCEP", client, cancelApi, fmt.Sprintf(urlViaCEP, "88955-000"))
-	}()
+	//go func() {
+	go getCep(ctxVia, doneC, "ViaCEP", client, cancelApi, fmt.Sprintf(urlViaCEP, "88955-000"))
+	//}()
 
 	<-doneC
 }
