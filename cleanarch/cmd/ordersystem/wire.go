@@ -32,10 +32,10 @@ var setOrderCreatedEvent = wire.NewSet(
 	wire.Bind(new(events.EventInterface), new(*event.OrderCreated)),
 )
 
-var setListedOrderEvent = wire.NewSet(
-	event.NewOrdersListed(),
-	wire.Bind(new(events.EventInterface), new(*event.OrdersListed)),
-)
+//var setListedOrderEvent = wire.NewSet(
+//	event.NewOrdersListed,
+//	wire.Bind(new(events.EventInterface), new(*event.OrdersListed)),
+//)
 
 func NewCreateOrderUseCase(db *sql.DB, eventDispatcher events.EventDispatcherInterface) *usecase.CreateOrderUseCase {
 	wire.Build(
