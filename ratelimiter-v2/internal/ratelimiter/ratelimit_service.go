@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"ratelimiter-v2/internal/infra"
+	"ratelimiter-v2/internal/infrastructure/database"
 )
 
 type RateLimitService interface {
@@ -13,13 +13,17 @@ type RateLimitService interface {
 }
 
 type rateLimitService struct {
-	cache      infra.Cache
+	cache      database.Cache
 	MaxRequest int
 	Duration   time.Duration
 }
 
-func NewRateLimitService() RateLimitService {
-	return &rateLimitService{}
+func NewRateLimitService(maxRequest int, duration time.Duration, cache database.Cache) RateLimitService {
+	return &rateLimitService{
+		cache:      cache,
+		MaxRequest: maxRequest,
+		Duration:   duration,
+	}
 }
 
 func (s *rateLimitService) Allow(ctx context.Context, ipOrToken string) bool {
