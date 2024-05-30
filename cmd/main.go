@@ -84,6 +84,7 @@ func main() {
 			rateLimitOutput := rateLimiterUsecase.Execute(r.Context(), usecaseInputDTO)
 			if !rateLimitOutput.Allow {
 				w.WriteHeader(http.StatusTooManyRequests)
+				w.Write([]byte("you have reached the maximum number of requests or actions allowed within a certain time frame"))
 				return
 			}
 
