@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
-	"ratelimiter-v2/internal/infrastructure/database"
+	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
 )
 
 type RateLimitService interface {
-	Allow(ctx context.Context, ip string) bool
+	Allow(ctx context.Context, ipToken string) bool
 }
 
 type rateLimitService struct {
@@ -28,9 +28,6 @@ func NewRateLimitService(maxRequest int, duration time.Duration, cache database.
 
 func (s *rateLimitService) Allow(ctx context.Context, ipOrToken string) bool {
 
-	// confiro se key já existe (IP ou Token)
-	// se nao existe, crio e adiciono ttl
-	// se existe incremento, sem mexer no expire
 	exists, err := s.cache.Exists(ctx, ipOrToken)
 	if err != nil {
 		log.Fatalf("Failed to check if key exists: %v", err)

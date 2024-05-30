@@ -6,13 +6,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
+	"github.com/airtongit/fc-ratelimiter/internal/ratelimiter"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
-	"ratelimiter-v2/internal/infrastructure/database"
-	"ratelimiter-v2/internal/ratelimiter"
 )
 
 func main() {
@@ -72,8 +73,12 @@ func main() {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			usecaseInputDTO := ratelimiter.AllowRateLimitInputDTO{
-				IpLimit: IPLimitSec,
-				IP:      r.RemoteAddr,
+				IpLimit:       IPLimitSec,
+				IP:            r.RemoteAddr,
+				Token:         r.Header.Get("API_KEY"),
+				TokenLimit:    tokenRateLimitMapc,
+				TokenDuration: time.Second,
+				IpDuration:    time.Second,
 			}
 
 			rateLimitOutput := rateLimiterUsecase.Execute(r.Context(), usecaseInputDTO)

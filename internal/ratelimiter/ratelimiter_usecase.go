@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"ratelimiter-v2/internal/infrastructure/database"
+	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
 )
 
 type AllowRateLimiterUsecase interface {
@@ -15,7 +15,7 @@ type AllowRateLimitInputDTO struct {
 	IpLimit    int
 	IpDuration time.Duration
 
-	TokenLimit    int
+	TokenLimit    map[string]int
 	TokenDuration time.Duration
 
 	IP    string
@@ -38,7 +38,7 @@ type rateLimiterUsecaseImpl struct {
 
 func (r *rateLimiterUsecaseImpl) Execute(ctx context.Context, dto AllowRateLimitInputDTO) AllowRateLimitOutputDTO {
 	ipRateLimiter := NewRateLimitService(dto.IpLimit, dto.IpDuration, r.cache)
-	tokenRateLimiter := NewRateLimitService(dto.TokenLimit, dto.TokenDuration, r.cache)
+	tokenRateLimiter := NewRateLimitService(dto.TokenLimit[dto.Token], dto.TokenDuration, r.cache)
 
 	ipAllowed := ipRateLimiter.Allow(ctx, dto.IP)
 	tokenAllowed := tokenRateLimiter.Allow(ctx, dto.Token)
