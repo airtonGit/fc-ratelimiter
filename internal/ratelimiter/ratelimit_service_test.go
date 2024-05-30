@@ -36,7 +36,7 @@ func Test_rateLimitService_Allow_Deny(t *testing.T) {
 }
 
 // Test that hits the limit, waits and try again
-func Test_rateLimitService_Allow_DenyWaitAllow(t *testing.T) {
+func Test_rateLimitService_Allow_RequestWaitAllow(t *testing.T) {
 	//Given
 
 	redisCache := redis.NewClient(&redis.Options{
