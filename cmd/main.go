@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -94,5 +95,10 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello World!"))
 	})
-	http.ListenAndServe(":8080", r)
+	fmt.Println("Listening on :8080")
+	err = http.ListenAndServe(":8080", r)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
