@@ -12,7 +12,6 @@ import (
 	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
 	"github.com/airtongit/fc-ratelimiter/internal/ratelimiter"
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
@@ -69,13 +68,13 @@ func main() {
 	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository)
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	//r.Use(middleware.Logger)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			usecaseInputDTO := ratelimiter.AllowRateLimitInputDTO{
 				IpLimit:       IPLimitSec,
-				IP:            r.RemoteAddr,
+				IP:            strings.Split(r.RemoteAddr, ":")[0],
 				Token:         r.Header.Get("API_KEY"),
 				TokenLimit:    tokenRateLimitMapc,
 				TokenDuration: time.Second,
@@ -84,6 +83,7 @@ func main() {
 
 			rateLimitOutput := rateLimiterUsecase.Execute(r.Context(), usecaseInputDTO)
 			if !rateLimitOutput.Allow {
+				//fmt.Println("Rate limit exceeded 429")
 				w.WriteHeader(http.StatusTooManyRequests)
 				w.Write([]byte("you have reached the maximum number of requests or actions allowed within a certain time frame"))
 				return
