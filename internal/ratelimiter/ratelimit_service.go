@@ -3,11 +3,11 @@ package ratelimiter
 import (
 	"context"
 	"fmt"
+	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/lock"
 	"log"
 	"time"
 
 	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
-	"github.com/go-redsync/redsync/v4"
 )
 
 type RateLimitService interface {
@@ -15,18 +15,18 @@ type RateLimitService interface {
 }
 
 type rateLimitService struct {
-	cache      database.Cache
-	MaxRequest int
-	Duration   time.Duration
-	lock       *redsync.Mutex
+	cache                 database.Cache
+	RequestsByPeriodLimit int
+	PeriodDuration        time.Duration
+	// lock                  lock.Locker
 }
 
-func NewRateLimitService(maxRequest int, duration time.Duration, cache database.Cache, lock *redsync.Mutex) RateLimitService {
+func NewRateLimitService(RequestsBySecondLimit int, periodDuration time.Duration, cache database.Cache, lock lock.Locker) RateLimitService {
 	return &rateLimitService{
-		cache:      cache,
-		MaxRequest: maxRequest,
-		Duration:   duration,
-		lock:       lock,
+		cache:                 cache,
+		RequestsByPeriodLimit: RequestsBySecondLimit,
+		PeriodDuration:        periodDuration,
+		// lock:                  lock,
 	}
 }
 
@@ -36,34 +36,22 @@ func (s *rateLimitService) Allow(ctx context.Context, ipOrToken string) bool {
 		log.Fatalf("Failed to set key: %v", fmt.Errorf(ipOrToken+" is empty"))
 	}
 
-	//err := s.lock.Lock()
-	//if err != nil {
-	//	log.Fatalf("Failed to lock mutex: %v", err)
-	//}
-	//defer func() {
-	//	result, err := s.lock.Unlock()
-	//	if err != nil {
-	//		log.Fatalf("Failed to unlock mutex: %v", err)
-	//	}
-	//	if result == false {
-	//		log.Fatalf("Failed to unlock mutex: %v", fmt.Errorf("mutex not unlocked"))
-	//	}
-	//}()
-
-	newValue, err := s.cache.Incr(ctx, ipOrToken)
+	newValue, err := s.cache.Incr(ctx, ipOrToken, s.PeriodDuration)
 	if err != nil {
 		log.Fatalf("Failed to increment key: %v", err)
 	}
 
-	if newValue == 1 {
-		err := s.cache.Set(ctx, ipOrToken, 1, s.Duration)
-		if err != nil {
-			log.Fatalf("Failed to set key: %v", err)
-		}
-	} else {
-		if newValue > int64(s.MaxRequest) {
-			return false
-		}
+	//if newValue == 1 {
+	//	err := s.cache.Set(ctx, ipOrToken, 1, s.PeriodDuration)
+	//	if err != nil {
+	//		log.Fatalf("Failed to set key: %v", err)
+	//	}
+	//} else {
+	//
+	//}
+
+	if newValue > int64(s.RequestsByPeriodLimit) {
+		return false
 	}
 
 	return true

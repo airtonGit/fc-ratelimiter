@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/lock"
 	"net"
 	"net/http"
 	"os"
@@ -16,8 +17,6 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
 
-	"github.com/go-redsync/redsync/v4"
-	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	goredislib "github.com/redis/go-redis/v9"
 )
 
@@ -39,11 +38,11 @@ func main() {
 		DB:       redisDB,
 	})
 
-	pool := goredis.NewPool(redisCache)
-
-	// Create an instance of redisync to be used to obtain a mutual exclusion
-	// lock.
-	redisLock := redsync.New(pool)
+	//pool := goredis.NewPool(redisCache)
+	//
+	//// Create an instance of redisync to be used to obtain a mutual exclusion
+	//// lock.
+	//redisLock := redsync.New(pool)
 
 	redisRepository := database.NewRedisRepository(redisCache)
 
@@ -61,10 +60,10 @@ func main() {
 	if err != nil {
 		panic("Error loading tokens list")
 	}
-	type TokenRateLimit struct {
-		Token string
-		Limit int
-	}
+	//type TokenRateLimit struct {
+	//	Token string
+	//	Limit int
+	//}
 	tokenRateLimitMapc := make(map[string]int)
 	for _, tokenLimitPair := range tokensList {
 		values := strings.Split(tokenLimitPair, "=")
@@ -76,13 +75,13 @@ func main() {
 		tokenRateLimitMapc[tokenItem] = tokenLimit
 	}
 
-	mutex := redisLock.NewMutex("ratelimiter-mutex")
+	redsyncRepository := lock.NewRedsyncRepository(redisCache)
 
-	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository, mutex)
+	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository, redsyncRepository)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)
-	//r.Use(middleware.Logger)
+	r.Use(middleware.Logger)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -93,17 +92,16 @@ func main() {
 			}
 
 			usecaseInputDTO := ratelimiter.AllowRateLimitInputDTO{
-				IpLimit:       IPLimitSec,
-				IP:            host,
-				Token:         r.Header.Get("API_KEY"),
-				TokenLimit:    tokenRateLimitMapc,
-				TokenDuration: time.Second,
-				IpDuration:    time.Second,
+				IPRequestBySecondLimit:     IPLimitSec,
+				IP:                         host,
+				Token:                      r.Header.Get("API_KEY"),
+				TokenRequestsBySecondLimit: tokenRateLimitMapc,
+				TokenDuration:              time.Second,
+				IpDuration:                 time.Second,
 			}
 
-			//mutex := &sync.Mutex{}
 			for {
-				err := mutex.Lock()
+				// err := redsyncRepository.Lock()
 				if err != nil {
 					fmt.Println("Error locking mutex:", err)
 					continue
@@ -116,7 +114,7 @@ func main() {
 					return
 				}
 
-				mutex.Unlock()
+				// redsyncRepository.Unlock()
 				break
 			}
 			next.ServeHTTP(w, r)

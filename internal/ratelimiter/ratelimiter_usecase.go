@@ -2,10 +2,10 @@ package ratelimiter
 
 import (
 	"context"
+	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/lock"
 	"time"
 
 	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
-	"github.com/go-redsync/redsync/v4"
 )
 
 type AllowRateLimiterUsecase interface {
@@ -13,11 +13,11 @@ type AllowRateLimiterUsecase interface {
 }
 
 type AllowRateLimitInputDTO struct {
-	IpLimit    int
-	IpDuration time.Duration
+	IPRequestBySecondLimit int
+	IpDuration             time.Duration
 
-	TokenLimit    map[string]int
-	TokenDuration time.Duration
+	TokenRequestsBySecondLimit map[string]int
+	TokenDuration              time.Duration
 
 	IP    string
 	Token string
@@ -27,7 +27,7 @@ type AllowRateLimitOutputDTO struct {
 	Allow bool
 }
 
-func NewRateLimiterUsecase(cache database.Cache, lock *redsync.Mutex) AllowRateLimiterUsecase {
+func NewRateLimiterUsecase(cache database.Cache, lock lock.Locker) AllowRateLimiterUsecase {
 	return &rateLimiterUsecaseImpl{
 		cache: cache,
 		lock:  lock,
@@ -36,7 +36,7 @@ func NewRateLimiterUsecase(cache database.Cache, lock *redsync.Mutex) AllowRateL
 
 type rateLimiterUsecaseImpl struct {
 	cache database.Cache
-	lock  *redsync.Mutex
+	lock  lock.Locker
 }
 
 func (r *rateLimiterUsecaseImpl) Execute(ctx context.Context, dto AllowRateLimitInputDTO) AllowRateLimitOutputDTO {
@@ -47,8 +47,8 @@ func (r *rateLimiterUsecaseImpl) Execute(ctx context.Context, dto AllowRateLimit
 		}
 	}
 
-	ipRateLimiter := NewRateLimitService(dto.IpLimit, dto.IpDuration, r.cache, r.lock)
-	tokenRateLimiter := NewRateLimitService(dto.TokenLimit[dto.Token], dto.TokenDuration, r.cache, r.lock)
+	ipRateLimiter := NewRateLimitService(dto.IPRequestBySecondLimit, dto.IpDuration, r.cache, r.lock)
+	tokenRateLimiter := NewRateLimitService(dto.TokenRequestsBySecondLimit[dto.Token], dto.TokenDuration, r.cache, r.lock)
 
 	ipAllowed := ipRateLimiter.Allow(ctx, dto.IP)
 	var tokenAllowed bool
