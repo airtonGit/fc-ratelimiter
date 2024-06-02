@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -69,13 +70,20 @@ func main() {
 	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository)
 
 	r := chi.NewRouter()
+	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+			host, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				fmt.Println("Error parsing remote address:", err)
+				return
+			}
+
 			usecaseInputDTO := ratelimiter.AllowRateLimitInputDTO{
 				IpLimit:       IPLimitSec,
-				IP:            r.RemoteAddr,
+				IP:            host,
 				Token:         r.Header.Get("API_KEY"),
 				TokenLimit:    tokenRateLimitMapc,
 				TokenDuration: time.Second,

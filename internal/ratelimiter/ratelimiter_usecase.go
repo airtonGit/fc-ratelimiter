@@ -41,7 +41,10 @@ func (r *rateLimiterUsecaseImpl) Execute(ctx context.Context, dto AllowRateLimit
 	tokenRateLimiter := NewRateLimitService(dto.TokenLimit[dto.Token], dto.TokenDuration, r.cache)
 
 	ipAllowed := ipRateLimiter.Allow(ctx, dto.IP)
-	tokenAllowed := tokenRateLimiter.Allow(ctx, dto.Token)
+	var tokenAllowed bool
+	if dto.Token != "" {
+		tokenAllowed = tokenRateLimiter.Allow(ctx, dto.Token)
+	}
 
 	if dto.Token != "" {
 		return AllowRateLimitOutputDTO{
