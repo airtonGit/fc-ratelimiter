@@ -18,7 +18,7 @@ func Test_rateLimitUsecase_DenyToken(t *testing.T) {
 	})
 
 	redisRepository := database.NewRedisRepository(redisCache)
-	ratelimiterUsecase := NewRateLimiterUsecase(redisRepository)
+	ratelimiterUsecase := NewRateLimiterUsecase(redisRepository, nil)
 
 	//When
 	token := "127.0.0.1"

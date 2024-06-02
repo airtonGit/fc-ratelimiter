@@ -41,6 +41,23 @@ func (r *RedisRepository) Incr(ctx context.Context, key string) (int64, error) {
 	if err != nil {
 		log.Fatalf("failed to increment key: %v", err)
 	}
+
+	//r.client.Eval(ctx, `
+	//	FUNCTION LIMIT_API_CALL(ip)
+	//		ts = CURRENT_UNIX_TIME()
+	//		keyname = ip+":"+ts
+	//		MULTI
+	//			INCR(keyname)
+	//			EXPIRE(keyname,10)
+	//		EXEC
+	//		current = RESPONSE_OF_INCR_WITHIN_MULTI
+	//		IF current > 10 THEN
+	//			ERROR "too many requests per second"
+	//		ELSE
+	//			PERFORM_API_CALL()
+	//		END
+	//`, []string{key})
+
 	return newValue, nil
 }
 

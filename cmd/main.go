@@ -15,7 +15,10 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
+
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
+	goredislib "github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -30,11 +33,17 @@ func main() {
 		panic("Error loading redis DB config")
 	}
 
-	redisCache := redis.NewClient(&redis.Options{
+	redisCache := goredislib.NewClient(&goredislib.Options{
 		Addr:     redisHost,
 		Password: "",
 		DB:       redisDB,
 	})
+
+	pool := goredis.NewPool(redisCache)
+
+	// Create an instance of redisync to be used to obtain a mutual exclusion
+	// lock.
+	redisLock := redsync.New(pool)
 
 	redisRepository := database.NewRedisRepository(redisCache)
 
@@ -67,11 +76,11 @@ func main() {
 		tokenRateLimitMapc[tokenItem] = tokenLimit
 	}
 
-	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository)
+	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository, redisLock)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	//r.Use(middleware.Logger)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
