@@ -27,7 +27,7 @@ type AllowRateLimitOutputDTO struct {
 	Allow bool
 }
 
-func NewRateLimiterUsecase(cache database.Cache, lock *redsync.Redsync) AllowRateLimiterUsecase {
+func NewRateLimiterUsecase(cache database.Cache, lock *redsync.Mutex) AllowRateLimiterUsecase {
 	return &rateLimiterUsecaseImpl{
 		cache: cache,
 		lock:  lock,
@@ -36,7 +36,7 @@ func NewRateLimiterUsecase(cache database.Cache, lock *redsync.Redsync) AllowRat
 
 type rateLimiterUsecaseImpl struct {
 	cache database.Cache
-	lock  *redsync.Redsync
+	lock  *redsync.Mutex
 }
 
 func (r *rateLimiterUsecaseImpl) Execute(ctx context.Context, dto AllowRateLimitInputDTO) AllowRateLimitOutputDTO {

@@ -16,12 +16,12 @@ type RateLimitService interface {
 
 type rateLimitService struct {
 	cache      database.Cache
-	lock       *redsync.Redsync
 	MaxRequest int
 	Duration   time.Duration
+	lock       *redsync.Mutex
 }
 
-func NewRateLimitService(maxRequest int, duration time.Duration, cache database.Cache, lock *redsync.Redsync) RateLimitService {
+func NewRateLimitService(maxRequest int, duration time.Duration, cache database.Cache, lock *redsync.Mutex) RateLimitService {
 	return &rateLimitService{
 		cache:      cache,
 		MaxRequest: maxRequest,
@@ -36,12 +36,19 @@ func (s *rateLimitService) Allow(ctx context.Context, ipOrToken string) bool {
 		log.Fatalf("Failed to set key: %v", fmt.Errorf(ipOrToken+" is empty"))
 	}
 
-	mutex := s.lock.NewMutex("rateLimit")
-	err := mutex.Lock()
-	if err != nil {
-		log.Fatalf("Failed to lock mutex: %v", err)
-	}
-	defer mutex.Unlock()
+	//err := s.lock.Lock()
+	//if err != nil {
+	//	log.Fatalf("Failed to lock mutex: %v", err)
+	//}
+	//defer func() {
+	//	result, err := s.lock.Unlock()
+	//	if err != nil {
+	//		log.Fatalf("Failed to unlock mutex: %v", err)
+	//	}
+	//	if result == false {
+	//		log.Fatalf("Failed to unlock mutex: %v", fmt.Errorf("mutex not unlocked"))
+	//	}
+	//}()
 
 	newValue, err := s.cache.Incr(ctx, ipOrToken)
 	if err != nil {
@@ -58,27 +65,6 @@ func (s *rateLimitService) Allow(ctx context.Context, ipOrToken string) bool {
 			return false
 		}
 	}
-	//exists, err := s.cache.Exists(ctx, ipOrToken)
-	//if err != nil {
-	//	log.Fatalf("Failed to check if key exists: %v", err)
-	//}
-	//if exists {
-	//	newValue, err := s.cache.Incr(ctx, ipOrToken)
-	//	if err != nil {
-	//		log.Fatalf("Failed to increment key: %v", err)
-	//	}
-	//
-	//	if newValue > int64(s.MaxRequest) {
-	//		return false
-	//	}
-	//
-	//} else {
-	//	// first for this key, in the time window
-	//	err = s.cache.Set(ctx, ipOrToken, 1, s.Duration)
-	//	if err != nil {
-	//		log.Fatalf("Failed to set key: %v", err)
-	//	}
-	//}
 
 	return true
 }

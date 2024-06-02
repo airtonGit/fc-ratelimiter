@@ -66,5 +66,8 @@ func (r *RedisRepository) Set(ctx context.Context, key string, value any, expira
 	if err != nil {
 		return fmt.Errorf("failed to set key: %v", err)
 	}
+
+	// r.client.Set()
+
 	return nil
 }

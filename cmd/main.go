@@ -76,7 +76,9 @@ func main() {
 		tokenRateLimitMapc[tokenItem] = tokenLimit
 	}
 
-	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository, redisLock)
+	mutex := redisLock.NewMutex("ratelimiter-mutex")
+
+	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository, mutex)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)
@@ -99,13 +101,24 @@ func main() {
 				IpDuration:    time.Second,
 			}
 
-			rateLimitOutput := rateLimiterUsecase.Execute(r.Context(), usecaseInputDTO)
-			if !rateLimitOutput.Allow {
-				w.WriteHeader(http.StatusTooManyRequests)
-				w.Write([]byte("you have reached the maximum number of requests or actions allowed within a certain time frame"))
-				return
-			}
+			//mutex := &sync.Mutex{}
+			for {
+				err := mutex.Lock()
+				if err != nil {
+					fmt.Println("Error locking mutex:", err)
+					continue
+				}
 
+				rateLimitOutput := rateLimiterUsecase.Execute(r.Context(), usecaseInputDTO)
+				if !rateLimitOutput.Allow {
+					w.WriteHeader(http.StatusTooManyRequests)
+					w.Write([]byte("you have reached the maximum number of requests or actions allowed within a certain time frame"))
+					return
+				}
+
+				mutex.Unlock()
+				break
+			}
 			next.ServeHTTP(w, r)
 		})
 	})
