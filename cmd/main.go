@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/lock"
 	"net"
 	"net/http"
 	"os"
@@ -14,35 +13,34 @@ import (
 	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
 	"github.com/airtongit/fc-ratelimiter/internal/ratelimiter"
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
-
-	goredislib "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		panic("Error loading .env file")
+
+	if _, err := os.Stat(".env"); err == nil {
+		err := godotenv.Load()
+		if err != nil {
+			fmt.Println("Error loading .env file", err)
+			return
+		}
 	}
 
 	redisHost := os.Getenv("REDIS_HOST")
 	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
 	if err != nil {
-		panic("Error loading redis DB config")
+		fmt.Println("Error loading redis DB config", err)
+		return
 	}
 
-	redisCache := goredislib.NewClient(&goredislib.Options{
+	fmt.Println(fmt.Sprintf("Loaded config redis_host:%s, redis_db:%d", redisHost, redisDB))
+
+	redisCache := redis.NewClient(&redis.Options{
 		Addr:     redisHost,
 		Password: "",
 		DB:       redisDB,
 	})
-
-	//pool := goredis.NewPool(redisCache)
-	//
-	//// Create an instance of redisync to be used to obtain a mutual exclusion
-	//// lock.
-	//redisLock := redsync.New(pool)
 
 	redisRepository := database.NewRedisRepository(redisCache)
 
@@ -60,10 +58,7 @@ func main() {
 	if err != nil {
 		panic("Error loading tokens list")
 	}
-	//type TokenRateLimit struct {
-	//	Token string
-	//	Limit int
-	//}
+
 	tokenRateLimitMapc := make(map[string]int)
 	for _, tokenLimitPair := range tokensList {
 		values := strings.Split(tokenLimitPair, "=")
@@ -75,13 +70,10 @@ func main() {
 		tokenRateLimitMapc[tokenItem] = tokenLimit
 	}
 
-	redsyncRepository := lock.NewRedsyncRepository(redisCache)
-
-	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository, redsyncRepository)
+	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository)
 
 	r := chi.NewRouter()
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	//r.Use(middleware.Logger)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -100,23 +92,14 @@ func main() {
 				IpDuration:                 time.Second,
 			}
 
-			for {
-				// err := redsyncRepository.Lock()
-				if err != nil {
-					fmt.Println("Error locking mutex:", err)
-					continue
-				}
-
-				rateLimitOutput := rateLimiterUsecase.Execute(r.Context(), usecaseInputDTO)
-				if !rateLimitOutput.Allow {
-					w.WriteHeader(http.StatusTooManyRequests)
-					w.Write([]byte("you have reached the maximum number of requests or actions allowed within a certain time frame"))
-					return
-				}
-
-				// redsyncRepository.Unlock()
-				break
+			rateLimitOutput := rateLimiterUsecase.Execute(r.Context(), usecaseInputDTO)
+			if !rateLimitOutput.Allow {
+				//fmt.Println("Rate limit exceeded 429")
+				w.WriteHeader(http.StatusTooManyRequests)
+				w.Write([]byte("you have reached the maximum number of requests or actions allowed within a certain time frame"))
+				return
 			}
+
 			next.ServeHTTP(w, r)
 		})
 	})

@@ -7,5 +7,12 @@ services:
     volumes:
       - redis-data:/data
 
+  rate-limiter:
+    image: ratelimiter:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env_lado
+
 volumes:
   redis-data:

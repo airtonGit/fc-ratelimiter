@@ -1,5 +1,5 @@
 # Use base golang image from Docker Hub
-FROM golang:1.22 AS build
+FROM golang:1.22-alpine AS build
 
 WORKDIR /app
 
@@ -16,9 +16,11 @@ COPY . ./
 
 # Compile the application to /app.
 # Skaffold passes in debug-oriented compiler flags
-ARG SKAFFOLD_GO_GCFLAGS
-RUN echo "Go gcflags: ${SKAFFOLD_GO_GCFLAGS}"
-RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -mod=readonly -v -o /app
+# ARG SKAFFOLD_GO_GCFLAGS
+# RUN echo "Go gcflags: ${SKAFFOLD_GO_GCFLAGS}"
+# RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -v -o /app
+
+RUN go build -v -o /app/rate-limiter cmd/main.go
 
 # Now create separate deployment image
 FROM gcr.io/distroless/static-debian11
@@ -31,4 +33,4 @@ ENV GOTRACEBACK=single
 # Copy template & assets
 WORKDIR /app
 COPY --from=build /app ./app
-ENTRYPOINT ["./app"]
+ENTRYPOINT ["./app/rate-limiter"]
