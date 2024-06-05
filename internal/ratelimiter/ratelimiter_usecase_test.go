@@ -2,11 +2,12 @@ package ratelimiter
 
 import (
 	"context"
-	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
 )
 
 func Test_rateLimitUsecase_DenyToken(t *testing.T) {
@@ -18,7 +19,7 @@ func Test_rateLimitUsecase_DenyToken(t *testing.T) {
 	})
 
 	redisRepository := database.NewRedisRepository(redisCache)
-	ratelimiterUsecase := NewRateLimiterUsecase(redisRepository, nil)
+	ratelimiterUsecase := NewRateLimiterUsecase(redisRepository)
 
 	//When
 	token := "127.0.0.1"

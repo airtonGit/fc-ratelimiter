@@ -2,7 +2,6 @@ package ratelimiter
 
 import (
 	"context"
-	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/lock"
 	"time"
 
 	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
@@ -27,16 +26,14 @@ type AllowRateLimitOutputDTO struct {
 	Allow bool
 }
 
-func NewRateLimiterUsecase(cache database.Cache, lock lock.Locker) AllowRateLimiterUsecase {
+func NewRateLimiterUsecase(cache database.Cache) AllowRateLimiterUsecase {
 	return &rateLimiterUsecaseImpl{
 		cache: cache,
-		lock:  lock,
 	}
 }
 
 type rateLimiterUsecaseImpl struct {
 	cache database.Cache
-	lock  lock.Locker
 }
 
 func (r *rateLimiterUsecaseImpl) Execute(ctx context.Context, dto AllowRateLimitInputDTO) AllowRateLimitOutputDTO {
@@ -47,8 +44,8 @@ func (r *rateLimiterUsecaseImpl) Execute(ctx context.Context, dto AllowRateLimit
 		}
 	}
 
-	ipRateLimiter := NewRateLimitService(dto.IPRequestBySecondLimit, dto.IpDuration, r.cache, r.lock)
-	tokenRateLimiter := NewRateLimitService(dto.TokenRequestsBySecondLimit[dto.Token], dto.TokenDuration, r.cache, r.lock)
+	ipRateLimiter := NewRateLimitService(dto.IPRequestBySecondLimit, dto.IpDuration, r.cache)
+	tokenRateLimiter := NewRateLimitService(dto.TokenRequestsBySecondLimit[dto.Token], dto.TokenDuration, r.cache)
 
 	ipAllowed := ipRateLimiter.Allow(ctx, dto.IP)
 	var tokenAllowed bool

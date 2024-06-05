@@ -2,17 +2,26 @@
 services:
   redis:
     image: redis:latest
+    container_name: redishost
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    networks:
+      - net1
 
   rate-limiter:
     image: ratelimiter:latest
     ports:
       - "8080:8080"
     env_file:
-      - .env_lado
+      - .env
+    networks:
+      - net1
 
 volumes:
   redis-data:
+
+networks:
+  net1:
+    driver: bridge

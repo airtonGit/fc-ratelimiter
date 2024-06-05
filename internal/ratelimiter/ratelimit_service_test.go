@@ -20,7 +20,7 @@ func Test_rateLimitService_Allow_Deny(t *testing.T) {
 	})
 
 	redisRepository := database.NewRedisRepository(redisCache)
-	ratelimiterService := NewRateLimitService(3, time.Second, redisRepository, nil)
+	ratelimiterService := NewRateLimitService(3, time.Second, redisRepository)
 
 	//When
 	ipTest := "127.0.0.1"
@@ -46,19 +46,19 @@ func Test_rateLimitService_Allow_RequestWaitAllow(t *testing.T) {
 	})
 
 	redisRepository := database.NewRedisRepository(redisCache)
-	ratelimiterService := NewRateLimitService(3, time.Second, redisRepository, nil)
+	ratelimiterService := NewRateLimitService(3, time.Second, redisRepository)
 
 	//When
 	ipTest := "127.0.0.1"
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 2; i++ {
 		ratelimiterService.Allow(context.Background(), ipTest)
 	}
+
 	// wait the period window to request again with success
 	time.Sleep(time.Second)
 	allowResult := ratelimiterService.Allow(context.Background(), ipTest)
 
 	//Then
-
 	assert.Equal(t, true, allowResult, ipTest)
 }

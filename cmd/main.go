@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
 	"github.com/airtongit/fc-ratelimiter/internal/ratelimiter"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
@@ -41,6 +43,11 @@ func main() {
 		Password: "",
 		DB:       redisDB,
 	})
+
+	if _, err := redisCache.Ping(context.Background()).Result(); err != nil {
+		fmt.Println("Error connecting to redis", err)
+		return
+	}
 
 	redisRepository := database.NewRedisRepository(redisCache)
 
@@ -73,7 +80,7 @@ func main() {
 	rateLimiterUsecase := ratelimiter.NewRateLimiterUsecase(redisRepository)
 
 	r := chi.NewRouter()
-	//r.Use(middleware.Logger)
+	r.Use(middleware.RealIP)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
