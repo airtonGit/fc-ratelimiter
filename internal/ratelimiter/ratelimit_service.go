@@ -2,7 +2,6 @@ package ratelimiter
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -30,7 +29,8 @@ func NewRateLimitService(RequestsBySecondLimit int, periodDuration time.Duration
 func (s *rateLimitService) Allow(ctx context.Context, ipOrToken string) bool {
 
 	if ipOrToken == "" {
-		log.Fatalf("Failed to set key: %v", fmt.Errorf(ipOrToken+" is empty"))
+		log.Fatalf("ip or token empty")
+		return false
 	}
 
 	newValue, err := s.cache.Incr(ctx, ipOrToken, s.PeriodDuration)

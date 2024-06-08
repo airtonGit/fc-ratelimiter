@@ -24,6 +24,7 @@ func Test_rateLimitUsecase_DenyToken(t *testing.T) {
 	//When
 	token := "127.0.0.1"
 	input := AllowRateLimitInputDTO{
+		IP:    "localhost",
 		Token: token,
 		TokenRequestsBySecondLimit: map[string]int{
 			token: 3,
