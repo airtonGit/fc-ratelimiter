@@ -11,7 +11,7 @@ services:
       - net1
 
   rate-limiter:
-    image: ratelimiter:latest
+    image: ghcr.io/airtongit/fc-rate-limiter:latest
     build:
       context: .
       dockerfile: ./Dockerfile

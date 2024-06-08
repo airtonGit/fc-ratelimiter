@@ -2,12 +2,12 @@ package ratelimiter
 
 import (
 	"context"
-	"github.com/redis/go-redis/v9"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	"github.com/airtongit/fc-ratelimiter/internal/infrastructure/database"
+	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_rateLimitUsecase_DenyToken(t *testing.T) {
